@@ -1,0 +1,13 @@
+{
+  "name": "cats-vs-cucumbers",
+  "version": "1.0.0",
+  "description": "",
+  "author": "Elias Murcray",
+  "license": "MIT",
+  "scripts": {
+    "build": "tsc && uglifyjs dist/*.js -o dist/index.js -c -m"
+  },
+  "dependencies": {
+    "uglify-js": "^3.17.4"
+  }
+}
