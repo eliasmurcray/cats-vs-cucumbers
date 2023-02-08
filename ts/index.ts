@@ -10,18 +10,48 @@ const ctx = canvas.getContext("2d");
 const keys = {};
 setupKeys(canvas, keys);
 
+class Camera {
+
+  targetX: number;
+  targetY: number;
+
+  constructor(public x: number, public y: number, public viewportWidth: number, public viewportHeight: number, public trackingSpeed?: number) {
+    this.targetX = 0;
+    this.targetY = 0;
+    this.trackingSpeed = this.trackingSpeed ?? 0.1;
+  }
+
+  static lerp(value1: number, value2: number, amount: number): number {
+    return ((value2 - value1) * amount) + value1;
+  }
+
+  update() {
+    this.x = Camera.lerp(this.x, (this.viewportWidth >> 1) - this.targetX, this.trackingSpeed);
+    this.y = Camera.lerp(this.y, (this.viewportHeight >> 1) - this.targetY, this.trackingSpeed);
+  }
+
+  track(x: number, y: number) {
+    this.targetX = x;
+    this.targetY = y;
+  }
+};
+
 class Player {
 
   xVel: number;
   yVel: number;
   walkSpeed: number;
   isJumping: boolean;
+  camera: Camera;
 
   constructor(public x: number, public y: number) {
+    this.x = x;
+    this.y = y;
     this.xVel = 0;
     this.yVel = 0;
     this.walkSpeed = 2;
     this.isJumping = false;
+    this.camera = new Camera(x, y, canvas.width, canvas.height);
   }
 
   render(ctx: CanvasRenderingContext2D) {
@@ -43,9 +73,10 @@ class Player {
     if(keys["arrowleft"])
       this.xVel -= this.walkSpeed
     this.x += this.xVel;
-
     this.y += this.yVel;
 
+    this.camera.track(this.x, this.y);
+    this.camera.update();
   }
 };
 
@@ -61,8 +92,11 @@ function animationLoop(then: number) {
     // Execute game code here
     ctx.fillStyle = "#fff";
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.save();
+    ctx.translate(player.camera.x | 0, player.camera.y | 0);
     player.render(ctx);
     player.update();
+    ctx.restore();
   }
   requestAnimationFrame(() => animationLoop(then));
 }
