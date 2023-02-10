@@ -5,8 +5,7 @@
   "author": "Elias Murcray",
   "license": "MIT",
   "scripts": {
-    "build": "tsc && uglifyjs dist/*.js -o dist/index.js -c -m",
-    "commit": "git add . && git commit -m \"%npm_comfig_comment%\" && git push -u origin main"
+    "build": "tsc && uglifyjs dist/*.js -o dist/index.js -c -m"
   },
   "dependencies": {
     "uglify-js": "^3.17.4"
