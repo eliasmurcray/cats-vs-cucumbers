@@ -10,6 +10,38 @@ const ctx = canvas.getContext("2d");
 const keys = {};
 setupKeys(canvas, keys);
 
+const blockSize = 30;
+const levelMaps = [
+  [
+    "000011100",
+    "000100100",
+    "010001001"
+  ]
+];
+let level = 0;
+const levelObjs: [number, number, string][] = [];
+function bufferObjs(levelNum: number) {
+  const currentMap = levelMaps[levelNum];
+  for(let i = 0; i < currentMap.length; i++)
+    for(let j = 0; j < currentMap[i].length; j++)
+      switch(currentMap[i][j]) {
+        case "1":
+          levelObjs.push([j * blockSize, i * blockSize, "wall"]);
+      }
+}
+
+function drawObjs() {
+  levelObjs.forEach(([x, y, type]) => {
+    switch(type) {
+      case "wall":
+        ctx.fillStyle = "#000";
+        ctx.fillRect(x, y, blockSize, blockSize);
+    }
+  });
+}
+
+bufferObjs(level);
+
 class Camera {
 
   targetX: number;
@@ -36,6 +68,18 @@ class Camera {
   }
 };
 
+type Square = {
+  x: number;
+  y: number;
+};
+
+function dist(x1: number, y1: number, x2: number, y2: number): number {
+  return Math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2);
+}
+function constrain(value: number, min: number, max: number): number {
+  return value < min ? min : value > max ? max : value;
+}
+
 class Player {
 
   xVel: number;
@@ -51,14 +95,25 @@ class Player {
     this.yVel = 0;
     this.walkSpeed = 2;
     this.isJumping = false;
-    this.camera = new Camera(x, y, canvas.width, canvas.height);
+    this.camera = new Camera(x, y, canvas.width, canvas.height, 0.05);
   }
 
   render(ctx: CanvasRenderingContext2D) {
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.ellipse(this.x, this.y, 15, 15, 0, 0, Math.PI * 2);
+    ctx.ellipse(this.x + blockSize / 2, this.y + blockSize / 2, 15, 15, 0, 0, Math.PI * 2);
     ctx.fill();
+  }
+  
+  circleSquareCollide(square: Square, checkX: boolean) {
+    const halfSize = blockSize / 2;
+    let closestX = constrain(this.x, square.x - halfSize, square.x + halfSize);
+    let closestY = constrain(this.y, square.y - halfSize, square.y + halfSize);
+
+    if(dist(closestX, closestY, this.x, this.y) >= halfSize) return;
+    const angle = Math.atan2(this.x - closestX, this.y - closestY);
+    this.x = closestX + Math.sin(angle) * halfSize;
+    this.y = closestY + Math.cos(angle) * halfSize;
   }
 
   update() {
@@ -73,12 +128,37 @@ class Player {
     if(keys["arrowleft"])
       this.xVel -= this.walkSpeed
     this.x += this.xVel;
+    levelObjs.forEach(([x, y, type]) => {
+      switch(type) {
+        case "wall":
+          this.circleSquareCollide({ x, y }, true);
+      }
+    });
+
     this.y += this.yVel;
+    levelObjs.forEach(([x, y, type]) => {
+      switch(type) {
+        case "wall":
+          this.circleSquareCollide({ x, y }, false);
+      }
+    });
 
     this.camera.track(this.x, this.y);
     this.camera.update();
   }
 };
+
+let scene = game;
+function game() {
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
+  ctx.translate(player.camera.x | 0, player.camera.y | 0);
+  player.render(ctx);
+  player.update();
+  drawObjs();
+  ctx.restore();
+}
 
 const player = new Player(30, 30);
 
@@ -90,13 +170,7 @@ function animationLoop(then: number) {
   if(elapsed > FRAME_TIME) {
     then = now - (elapsed % FRAME_TIME);
     // Execute game code here
-    ctx.fillStyle = "#fff";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-    ctx.save();
-    ctx.translate(player.camera.x | 0, player.camera.y | 0);
-    player.render(ctx);
-    player.update();
-    ctx.restore();
+    scene();
   }
   requestAnimationFrame(() => animationLoop(then));
 }
