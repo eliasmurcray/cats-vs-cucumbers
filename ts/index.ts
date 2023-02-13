@@ -30,9 +30,9 @@ setupKeys(canvas, keys);
 const blockSize = 30;
 const levelMaps = [
   [
-    "000011100",
-    "000100100",
-    "010001001"
+    "010011100",
+    "010010100",
+    "010011001"
   ]
 ];
 let level = 0;
@@ -103,9 +103,9 @@ class Player {
     this.yVel = 0;
     this.mouseX = 0;
     this.mouseY = 0;
-    this.uk = 0.1;
+    this.uk = 0.05;
     this.isJumping = false;
-    this.maxVel = 5;
+    this.maxVel = 10;
     this.camera = new Camera(x, y, canvas.width, canvas.height, 0.05);
   }
 
@@ -121,7 +121,7 @@ class Player {
     ctx.stroke();
   }
 
-  circleSquareCollide(square: XYObject) {
+  circleSquareCollide(square: XYObject, checkX: boolean) {
     const halfSize = blockSize / 2;
     let closestX = constrain(this.x, square.x - halfSize, square.x + halfSize);
     let closestY = constrain(this.y, square.y - halfSize, square.y + halfSize);
@@ -131,8 +131,7 @@ class Player {
     this.x = closestX + Math.sin(angle) * halfSize;
     this.y = closestY + Math.cos(angle) * halfSize;
     const speed = Math.sqrt(this.xVel ** 2 + this.yVel ** 2);
-    this.xVel = Math.sin(angle) * Math.abs(speed);
-    this.yVel = Math.cos(angle) * Math.abs(speed);
+    checkX ? (this.xVel = Math.sin(angle) * speed) : (this.yVel = Math.cos(angle) * speed);
   }
 
   addMouseListeners(canvas: HTMLCanvasElement) {
@@ -166,12 +165,12 @@ class Player {
     }
     this.xVel = constrain(lerp(this.xVel, 0, this.uk), -this.maxVel, this.maxVel);
     this.yVel = constrain(lerp(this.yVel, 0, this.uk), -this.maxVel, this.maxVel);
-    
+
     this.x += this.xVel;
     levelObjs.forEach(([x, y, type]) => {
       switch(type) {
         case "wall":
-          this.circleSquareCollide({ x, y });
+          this.circleSquareCollide({ x, y }, true);
       }
     });
 
@@ -179,7 +178,7 @@ class Player {
     levelObjs.forEach(([x, y, type]) => {
       switch(type) {
         case "wall":
-          this.circleSquareCollide({ x, y });
+          this.circleSquareCollide({ x, y }, false);
       }
     });
 
