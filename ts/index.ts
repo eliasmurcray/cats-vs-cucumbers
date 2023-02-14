@@ -2,9 +2,11 @@ type Keys = {
   [key: string]: boolean;
 };
 
-type XYObject = {
+type RectObject = {
   x: number;
   y: number;
+  width: number;
+  height: number;
 };
 
 function dist(x1: number, y1: number, x2: number, y2: number): number {
@@ -32,7 +34,10 @@ const levelMaps = [
   [
     "010011100",
     "010010100",
-    "010011001"
+    "010011001",
+    "010011111",
+    "0100000000",
+    "0111111111"
   ]
 ];
 let level = 0;
@@ -91,12 +96,13 @@ class Player {
   mouseY: number;
   initialX: number;
   initialY: number;
+  dragging: boolean;
   clicked: boolean;
   released: boolean;
   isJumping: boolean;
   camera: Camera;
 
-  constructor(public x: number, public y: number) {
+  constructor(public x: number, public y: number, public radius: number) {
     this.x = x;
     this.y = y;
     this.xVel = 0;
@@ -107,30 +113,32 @@ class Player {
     this.isJumping = false;
     this.maxVel = 10;
     this.camera = new Camera(x, y, canvas.width, canvas.height, 0.05);
+    this.dragging = false;
   }
 
   render(ctx: CanvasRenderingContext2D) {
+    const halfRadius = this.radius / 2;
     ctx.fillStyle = "#000";
     ctx.beginPath();
-    ctx.ellipse(this.x + blockSize / 2, this.y + blockSize / 2, 15, 15, 0, 0, Math.PI * 2);
+    ctx.ellipse(this.x + this.radius, this.y + this.radius, halfRadius, halfRadius, 0, 0, Math.PI * 2);
     ctx.fill();
     ctx.strokeStyle = "#FF00FF";
     ctx.beginPath()
-    ctx.moveTo(this.x + blockSize / 2, this.y + blockSize / 2);
-    ctx.lineTo(this.x + this.xVel * 10 + blockSize / 2, this.y + this.yVel * 10 + blockSize / 2);
+    ctx.moveTo(this.x + this.radius, this.y + this.radius);
+    ctx.lineTo(this.x + this.xVel * 10 + this.radius, this.y + this.yVel * 10 + this.radius);
     ctx.stroke();
   }
 
-  circleSquareCollide(square: XYObject, checkX: boolean) {
-    const halfSize = blockSize / 2;
-    let closestX = constrain(this.x, square.x - halfSize, square.x + halfSize);
-    let closestY = constrain(this.y, square.y - halfSize, square.y + halfSize);
+  circleSquareCollide(square: RectObject, checkX: boolean) {
+    const halfRadius = this.radius / 2;
+    let closestX = constrain(this.x, square.x - square.width / 2, square.x + square.width / 2);
+    let closestY = constrain(this.y, square.y - square.height / 2, square.y + square.height / 2);
 
-    if(dist(closestX, closestY, this.x, this.y) >= halfSize) return;
+    if(dist(closestX, closestY, this.x, this.y) >= halfRadius) return;
     const angle = Math.atan2(this.x - closestX, this.y - closestY);
-    this.x = closestX + Math.sin(angle) * halfSize;
-    this.y = closestY + Math.cos(angle) * halfSize;
-    const speed = Math.sqrt(this.xVel ** 2 + this.yVel ** 2);
+    this.x = closestX + Math.sin(angle) * halfRadius;
+    this.y = closestY + Math.cos(angle) * halfRadius;
+    const speed = Math.sqrt(this.xVel * this.xVel + this.yVel * this.yVel);
     checkX ? (this.xVel = Math.sin(angle) * speed) : (this.yVel = Math.cos(angle) * speed);
   }
 
@@ -157,11 +165,20 @@ class Player {
       this.initialX = this.mouseX;
       this.initialY = this.mouseY;
       this.clicked = false;
+      this.dragging = true;
     }
     if(this.released === true && this.initialX !== -1 && this.initialY !== -1) {
       this.xVel = (this.initialX - this.mouseX) / 10;
       this.yVel = (this.initialY - this.mouseY) / 10;
       this.released = false;
+      this.dragging = false;
+    }
+    if(this.dragging === true) {
+      ctx.strokeStyle = "#0000ff";
+      ctx.beginPath();
+      ctx.moveTo(this.x + this.radius, this.y + this.radius);
+      ctx.lineTo(this.x + this.radius + (this.initialX - this.mouseX) / 2.5, this.y + this.radius + (this.initialY - this.mouseY) / 2.5);
+      ctx.stroke();
     }
     this.xVel = constrain(lerp(this.xVel, 0, this.uk), -this.maxVel, this.maxVel);
     this.yVel = constrain(lerp(this.yVel, 0, this.uk), -this.maxVel, this.maxVel);
@@ -170,7 +187,7 @@ class Player {
     levelObjs.forEach(([x, y, type]) => {
       switch(type) {
         case "wall":
-          this.circleSquareCollide({ x, y }, true);
+          this.circleSquareCollide({ x, y, width: blockSize, height: blockSize }, true);
       }
     });
 
@@ -178,7 +195,7 @@ class Player {
     levelObjs.forEach(([x, y, type]) => {
       switch(type) {
         case "wall":
-          this.circleSquareCollide({ x, y }, false);
+          this.circleSquareCollide({ x, y, width: blockSize, height: blockSize }, false);
       }
     });
 
@@ -199,7 +216,7 @@ function game() {
   ctx.restore();
 }
 
-const player = new Player(-30, -30);
+const player = new Player(-30, -30, blockSize * 0.5);
 player.addMouseListeners(canvas);
 
 const FPS = 60;
