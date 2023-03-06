@@ -5,9 +5,11 @@
   "author": "Elias Murcray",
   "license": "MIT",
   "scripts": {
-    "build": "tsc && uglifyjs dist/*.js -o dist/index.js -c -m"
+    "build": "webpack"
   },
-  "dependencies": {
-    "uglify-js": "^3.17.4"
+  "devDependencies": {
+    "ts-loader": "^9.4.2",
+    "webpack": "^5.75.0",
+    "webpack-cli": "^5.0.1"
   }
 }
