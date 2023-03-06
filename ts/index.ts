@@ -24,10 +24,11 @@ class Ball {
         let n = result.geometry.normalVector;
         ball.delta.reflect(n);
       } else if(result.geometry instanceof Vec2) {
-        let collisionVector = ball.position.sub(result.geometry, new Vec2).normalize();
+        let collisionVector = ball.position.sub(result.geometry).normalize();
         let velocityDot = ball.delta.dot(collisionVector);
         ball.delta.sub(collisionVector.mult(2 * velocityDot));
       }
+      break;
     }
   }
 };
@@ -75,8 +76,6 @@ class PolygonCollider {
   }
 
   findBallIntercept(ball: Ball, out: Vec2 = new Vec2) {
-    // This will set the radius and update the normals
-    // based on the radius
     if(this.targetRadius !== ball.radius) {
       this.ballRadius = ball.radius;
     }
@@ -113,6 +112,22 @@ class PolygonCollider {
     }
     return;
   }
+
+  drawBallLines(ctx: CanvasRenderingContext2D) {
+    if (this.lines.length) {
+      const r = this.targetRadius;
+      ctx.beginPath();
+      for (const l of this.lines) { 
+        ctx.moveTo(l.p1.x, l.p1.y);
+        ctx.lineTo(l.p2.x, l.p2.y);
+      }
+      for (const p of this.points) { 
+        ctx.moveTo(p.x + r, p.y);
+        ctx.arc(p.x, p.y, r, 0, vMath.TAU);
+      }
+      ctx.stroke()
+    }
+    }
 };
 
 const canvas = document.querySelector('canvas');
@@ -120,13 +135,15 @@ const ctx = canvas.getContext('2d');
 const width = canvas.width = window.innerWidth;
 const height = canvas.height = window.innerHeight;
 
-let ball = new Ball(new Vec2(48, 282), new Vec2(0, -3), 10);
+let ball = new Ball(new Vec2(248, 82), new Vec2(-1, 2), 10);
 let polygon = new PolygonCollider([
   new Vec2(400, 336),
   new Vec2(200, 246),
   new Vec2(57, 125),
   new Vec2(159, 56)
 ]);
+
+polygon.ballRadius = ball.radius;
 
 function draw() {
   ctx.fillStyle = '#fafafa';
@@ -135,6 +152,7 @@ function draw() {
   ball.render(ctx);
   ctx.fillStyle = '#333';
   polygon.render(ctx);
+  ctx.fillStyle = '#0000';
   ball.update([ polygon ]);
   let { x, y } = ball.position;
   let { x: xVel, y: yVel } = ball.delta;

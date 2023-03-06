@@ -52,11 +52,11 @@ export default class Line2 {
   }
 
   translateNormal(n: number, out: Line2 = this): Line2 {
-    let v = this.asVec(wV1);
-    let y = v.x;
-    v.x = -v.y;
-    v.y = y;
-    v.length = -n;
+    this.asVec(wV1);
+    let y = wV1.x;
+    wV1.x = -wV1.y;
+    wV1.y = y;
+    wV1.length = -n;
     this.translate(wV1, out);
     return out;
   }
@@ -87,7 +87,7 @@ export default class Line2 {
   }
 
   get normalVector(): Vec2 {
-    const vector = this.p2.sub(this.p1);
+    const vector = this.p2.sub(this.p1, new Vec2());
     const { length } = vector;
     return new Vec2(-vector.y / length, vector.x / length);
   }
